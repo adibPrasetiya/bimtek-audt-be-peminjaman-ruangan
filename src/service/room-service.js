@@ -70,33 +70,37 @@ const search = async (reqParams) => {
   const params = [];
 
   if (reqParams.nama_ruang) {
-    filters.push("nama_ruang LIKE ?");
+    filters.push("peminjaman_ruang.nama_ruang LIKE ?");
     params.push(`%${reqParams.nama_ruang}%`);
   }
   if (reqParams.tanggal) {
-    filters.push("tanggal = ?");
+    filters.push("peminjaman_ruang.tanggal = ?");
     params.push(reqParams.tanggal);
   }
   if (reqParams.status) {
-    filters.push("status = ?");
+    filters.push("peminjaman_ruang.status = ?");
     params.push(reqParams.status);
   }
   if (reqParams.peminjam) {
-    filters.push("users.nama LIKE ?");
-    params.push(`%${reqParams.peminjam}%`);
+    filters.push("users.username = ?");
+    params.push(reqParams.peminjam);
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
   const peminjaman = await query(
-    `SELECT peminjaman_ruang.*, users.nama as peminjam FROM peminjaman_ruang 
+    `SELECT peminjaman_ruang.*, users.nama AS peminjam, users.username AS peminjam_username 
+    FROM peminjaman_ruang 
     JOIN users ON peminjaman_ruang.user_id = users.username 
-    ${whereClause} LIMIT ? OFFSET ?`,
+    ${whereClause} 
+    LIMIT ? OFFSET ?`,
     [...params, reqParams.size, skip]
   );
 
+  console.log(peminjaman);
+
   const [{ totalItems }] = await query(
-    `SELECT COUNT(*) as totalItems 
+    `SELECT COUNT(*) AS totalItems 
      FROM peminjaman_ruang
      JOIN users ON peminjaman_ruang.user_id = users.username
      ${whereClause}`,
@@ -113,7 +117,6 @@ const search = async (reqParams) => {
   };
 };
 
-// buat kerawanan idor, buat tidak ada pengecekan kepemilikan pengajuan
 const remove = async (peminjamId) => {
   peminjamId = validate(peminjamanIdValidation, peminjamId);
 
